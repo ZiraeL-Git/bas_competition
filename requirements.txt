@@ -1,0 +1,14 @@
+#bash
+# Pioneer SDK
+pioneer-sdk
+
+# OpenCV с ArUco
+opencv-contrib-python numpy
+
+pip install opencv-python
+
+# ROS (если не установлен — используйте ROS Noetic на Ubuntu)
+# TurtleBro обычно идёт с готовым ROS окружением
+
+#все сразу
+pip install pioneer-sdk opencv-contrib-python numpy
