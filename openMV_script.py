@@ -99,7 +99,8 @@ def choose_best_tag(tags):
             continue
 
         # Крупный тег с хорошим margin предпочтительнее.
-        score = tag.area() + int(tag.decision_margin() * 1000)
+        # tag.area() есть не во всех версиях прошивки OpenMV.
+        score = (tag.w() * tag.h()) + int(tag.decision_margin() * 1000)
         if score > best_score:
             best = tag
             best_score = score
