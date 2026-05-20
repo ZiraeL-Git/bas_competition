@@ -100,11 +100,34 @@ end
 -- ==================== UART / OpenMV ====================
 -- Чтение данных от OpenMV камеры через UART
 
-local uart = serial.open(3, UART_BAUD)  -- UART3 = порт расширения
+local uart = nil
+
+local function init_uart()
+    if uart then
+        return true
+    end
+
+    local ok, result = pcall(function()
+        return serial.open(3, UART_BAUD)  -- UART3 = порт расширения
+    end)
+
+    if ok and result then
+        uart = result
+        log("UART", "UART3 открыт, baud=" .. tostring(UART_BAUD))
+        return true
+    end
+
+    log("UART_ERROR", tostring(result))
+    return false
+end
 
 local function read_marker()
     -- Возвращает таблицу {found, cx, cy, size}
     -- found = true если маркер обнаружен
+    if not uart then
+        return { found = false }
+    end
+
     local line = uart:readline()
     if not line then
         return { found = false }
@@ -140,8 +163,27 @@ led_red()  -- КРАСНЫЙ при взлёте (регламент п.3)
 log("LED", "RED — взлёт")
 log("TAKEOFF", string.format("Взлёт на высоту %.1f м", TAKEOFF_HEIGHT))
 
-pioneer.takeoff(TAKEOFF_HEIGHT)
+local arm_ok, arm_err = pcall(function()
+    if pioneer.arm then
+        pioneer.arm()
+    end
+end)
+if not arm_ok then
+    log("ARM_ERROR", tostring(arm_err))
+end
+
+local takeoff_ok, takeoff_err = pcall(function()
+    pioneer.takeoff(TAKEOFF_HEIGHT)
+end)
+if not takeoff_ok then
+    log("TAKEOFF_ERROR", tostring(takeoff_err))
+end
+
 timer.sleep(5000)  -- ждём стабилизации на высоте (5 секунд)
+
+-- UART открываем только после взлёта, чтобы ошибка камеры/порта
+-- не мешала увидеть старт миссии и красный LED.
+init_uart()
 
 current_state = STATE.SEARCH
 
@@ -167,6 +209,10 @@ while current_state ~= STATE.DONE do
     end
 
     -- Читаем данные с OpenMV
+    if not uart then
+        init_uart()
+    end
+
     local marker = read_marker()
 
     -- ---- СОСТОЯНИЕ: ПОИСК ----
