@@ -244,7 +244,8 @@ while current_state ~= STATE.DONE do
 end
 
 -- ==================== ФИНАЛ ====================
-led_off()
+-- СИНИЙ остаётся гореть после посадки и дизарма (регламент п.5 и п.12 — +2 балла)
+led_blue()
 log("MISSION_COMPLETE", string.format(
     "Миссия завершена за %.1f секунд",
     os.clock() - mission_start))
