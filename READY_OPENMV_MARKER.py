@@ -16,6 +16,12 @@ import image
 import time
 from pyb import UART, LED
 
+# -------------------- LED OpenMV: старт файла --------------------
+led_red = LED(1)
+led_green = LED(2)
+led_red.on()
+led_green.off()
+
 # -------------------- Камера --------------------
 sensor.reset()
 sensor.set_pixformat(sensor.GRAYSCALE)
@@ -30,10 +36,6 @@ sensor.set_auto_exposure(True)
 
 # -------------------- UART --------------------
 uart = UART(3, 9600, timeout_char=1000)
-
-# -------------------- LED OpenMV --------------------
-led_red = LED(1)
-led_green = LED(2)
 
 # -------------------- Параметры поиска --------------------
 FRAME_W = 160
