@@ -72,14 +72,18 @@ while True:
             best = r
 
     if best is not None:
-        # Смещение центра маркера от центра кадра
-        cx   = best.cx() - (img.width()  // 2)  # >0 = правее
-        cy   = best.cy() - (img.height() // 2)  # >0 = ниже
-        size = best.w()                           # ширина маркера в пикселях
+        # find_rects() возвращает rect — cx/cy нет, считаем вручную
+        center_x = best.x() + best.w() // 2
+        center_y = best.y() + best.h() // 2
+
+        # Смещение от центра кадра (>0 = правее/ниже)
+        cx   = center_x - (img.width()  // 2)
+        cy   = center_y - (img.height() // 2)
+        size = best.w()
 
         # Визуализация в OpenMV IDE (для отладки)
         img.draw_rectangle(best.rect(), color=255, thickness=2)
-        img.draw_cross(best.cx(), best.cy(), color=200, size=12)
+        img.draw_cross(center_x, center_y, color=200, size=12)
         img.draw_string(
             4, 4,
             "cx={} cy={} sz={}".format(cx, cy, size),
