@@ -21,6 +21,7 @@ changeColor({1, 0, 0})
 local uartNum = 4
 local baudRate = 9600
 local uart = Uart.new(uartNum, baudRate, Uart.PARITY_NONE, 1)
+local rxBuffer = ""
 
 local function emergency()
     changeColor({1, 0, 0})
@@ -38,24 +39,39 @@ end
 getMeasureTimer = Timer.new(0.1, function()
     local bytes = uart:bytesToRead()
 
-    if bytes >= 2 then
+    if bytes > 0 then
         local buf = uart:read(bytes)
-        local x = string.unpack("B", buf, #buf - 1)
-        local y = string.unpack("B", buf, #buf)
+        rxBuffer = rxBuffer .. buf
 
-        -- Простая диагностика:
-        -- синий  = метка левее центра кадра;
-        -- зеленый = метка правее центра кадра;
-        -- желтый = метка около центра по X.
-        if x < 70 then
-            changeColor({0, 0, 1})
-        elseif x > 90 then
-            changeColor({0, 1, 0})
-        else
-            changeColor({1, 1, 0})
+        local x = nil
+        local y = nil
+
+        -- OpenMV постоянно шлет пары байтов: x, y.
+        -- Если пришла пачка байтов, берем последнюю полную пару.
+        while #rxBuffer >= 2 do
+            x = string.byte(rxBuffer, 1)
+            y = string.byte(rxBuffer, 2)
+            rxBuffer = string.sub(rxBuffer, 3)
         end
 
-        print("OpenMV x=" .. tostring(x) .. " y=" .. tostring(y))
+        if x ~= nil then
+            -- Простая диагностика:
+            -- синий  = метка левее центра кадра;
+            -- зеленый = метка правее центра кадра;
+            -- желтый = метка около центра по X.
+            if x < 70 then
+                changeColor({0, 0, 1})
+            elseif x > 90 then
+                changeColor({0, 1, 0})
+            else
+                changeColor({1, 1, 0})
+            end
+
+            print("OpenMV x=" .. tostring(x) .. " y=" .. tostring(y))
+        else
+            -- Получили только один байт, ждем второй.
+            changeColor({1, 1, 0})
+        end
     else
         -- Нет данных от OpenMV.
         changeColor({1, 0, 0})
