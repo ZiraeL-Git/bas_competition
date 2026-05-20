@@ -11,8 +11,8 @@
 #   стабильнее, чем ручная обработка ArUco через blobs/rects.
 #
 # Что печатать/крепить на платформу:
-#   AprilTag семейства TAG36H11. ID может быть любым, если TARGET_TAG_ID = -1.
-#   Если нужен конкретный тег, задайте TARGET_TAG_ID = номер тега.
+#   Любой AprilTag из включенных семейств. ID может быть любым, если
+#   TARGET_TAG_ID = -1. Если нужен конкретный тег, задайте TARGET_TAG_ID.
 #
 # UART в Pioneer:
 #   FOUND,cx,cy,size\n
@@ -50,10 +50,40 @@ led_green = LED(2)     # тег найден
 
 # ==================== Параметры ====================
 
-# Самое распространенное семейство AprilTag для OpenMV.
-TAG_FAMILY = image.TAG36H11
+# Семейства AprilTag, которые пробуем распознавать.
+# Чем больше семейств включено, тем ниже FPS. Если скорость проседает,
+# оставьте только то семейство, которое реально напечатано на платформе.
+ENABLED_FAMILY_NAMES = (
+    "TAG16H5",
+    "TAG25H9",
+    "TAG36H10",
+    "TAG36H11",
+    "TAGCIRCLE21H7",
+    "TAGCIRCLE49H12",
+    "TAGSTANDARD41H12",
+    "TAGSTANDARD52H13",
+    "TAGCUSTOM48H12",
+)
 
-# -1 = принимать любой ID из TAG36H11.
+
+def build_tag_family_mask():
+    mask = 0
+    for family_name in ENABLED_FAMILY_NAMES:
+        try:
+            mask |= getattr(image, family_name)
+        except AttributeError:
+            # Старые прошивки OpenMV могут не знать часть новых семейств.
+            pass
+
+    if mask == 0:
+        mask = image.TAG36H11
+
+    return mask
+
+
+TAG_FAMILIES = build_tag_family_mask()
+
+# -1 = принимать любой ID из любого включенного семейства.
 # Например, поставьте 0 или 1, если на платформе должен быть конкретный ID.
 TARGET_TAG_ID = -1
 
@@ -64,8 +94,8 @@ MIN_TAG_SIZE_PX = 12
 # Для первого запуска оставляем 0.0, чтобы не отфильтровать рабочий тег.
 MIN_DECISION_MARGIN = 0.0
 
-# TAG36H11 может исправлять до 4 битовых ошибок. Для первого запуска
-# оставляем максимум, потом можно ужесточить до 0-1.
+# Некоторые семейства могут исправлять битовые ошибки. Для первого запуска
+# оставляем мягкий фильтр, потом можно ужесточить до 0-1.
 MAX_HAMMING = 4
 
 # Рисовать отладку в OpenMV IDE Frame Buffer.
@@ -108,6 +138,13 @@ def choose_best_tag(tags):
     return best
 
 
+def tag_name(tag):
+    try:
+        return tag.name()
+    except AttributeError:
+        return "TAG"
+
+
 def draw_tag(img, tag, cx, cy, size):
     img.draw_rectangle(tag.rect(), color=255, thickness=2)
 
@@ -120,7 +157,8 @@ def draw_tag(img, tag, cx, cy, size):
     img.draw_cross(tag.cx(), tag.cy(), color=255, size=12, thickness=2)
     img.draw_string(
         4, 4,
-        "TAG36H11 id={} cx={} cy={} sz={} m={} h={}".format(
+        "{} id={} cx={} cy={} sz={} m={} h={}".format(
+            tag_name(tag),
             tag.id(),
             cx,
             cy,
@@ -155,7 +193,7 @@ while True:
     clock.tick()
     img = sensor.snapshot()
 
-    tags = img.find_apriltags(families=TAG_FAMILY)
+    tags = img.find_apriltags(families=TAG_FAMILIES)
     tag = choose_best_tag(tags)
 
     if tag is None:
