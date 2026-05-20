@@ -1,4 +1,3 @@
 numpy
-geometry_msgs
 opencv-contrib-python
-rospy
+pioneer-sdk
