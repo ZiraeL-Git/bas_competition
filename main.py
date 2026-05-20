@@ -4,11 +4,11 @@ from pyb import UART
 sensor.reset()
 sensor.set_pixformat(sensor.RGB565)
 sensor.set_framesize(sensor.QQVGA) # 160x120
-sensor.skip_frames(time=2000)
+sensor.skip_frames(time = 2000)
 
 uart = UART(3, 9600, timeout_char=1000)
 
-while (True):
+while(True):
     img = sensor.snapshot()
     rects = img.find_rects(threshold = 40000)
 
